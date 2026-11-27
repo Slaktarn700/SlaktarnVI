@@ -53,3 +53,40 @@ Memory: about 26 GB in use while playing, swap did not grow.
   driver makes pipelines. Mesa's disk cache keeps them for the next run.
 - `victory shaders <archives>` under Wine translates all 25,790 shaders in about 95 s on
   24 threads.
+
+## A second machine: Ryzen 7 5800X (CPU bound)
+
+Ryzen 7 5800X (8 cores, 32 MB L3, no 3D V-Cache), 32 GB, RX 9070 XT 16 GB, CachyOS kernel
+7.4.0-rc1, Proton Experimental bleeding-edge (vkd3d-proton `71cae0`) with
+`wineserver-view-tree.patch`, ray tracing off. diag build of `42b2226`, S70 settings
+(2560x1440, FSR 4 Quality from 1706x960), frame generation off. Scene: the opening prison
+cell, standing, about 4,840 draws a frame. Each row: the median of 60 s after 90 s in
+the world.
+
+| Run | fps | ms a frame | on the GPU |
+|---|---|---|---|
+| Mesa 26.2.6 (system) | 10.1 | 99 | 24 ms |
+| Mesa main `aad91d03` (`build-mesa-main.sh`, `MESA_PREFIX=`) | 13.1 | 77 | 19 ms |
+| Mesa main, 1920x1080 output (FSR from 1280x720) | 13.6 | 74 | 16.5 ms |
+| Mesa main, transparent huge pages `always` | **14.4** | 69 | 15 ms |
+| Mesa main, `VICTORY_CARD_STEPS_LEARN=0` | 15.5 | 65 | - |
+
+- The CPU is the limit: the info panel shows CPU about 75 %, GPU about 37 %. A lower output
+  size gains 4 %; most of a frame is copies (about 36 ms, 70 MB) and copies back (about
+  24 ms, 35 MB).
+- **Mesa older than 26.3 costs about 30 %** here: 26.2.6 against main, same build and settings.
+- **Transparent huge pages** (`echo always | sudo tee
+  /sys/kernel/mm/transparent_hugepage/enabled`, until reboot): +10 %. The title memory opened
+  with `OpenExistingHeapFromAddress` becomes a userptr buffer in amdgpu, and the kernel walks
+  its pages (`hmm_range_fault`, 174 MiB here) on every submission of vkd3d-proton's queue
+  thread: about 700 times a second, 520 us each with 4 KiB pages (a third of a core), 66 us
+  with 2 MiB pages (bpftrace on the kernel function, 10 s each).
+- `VICTORY_CARD_STEPS_LEARN=0` is 18 % faster here, with the stretched characters described
+  in `run-7900.sh`; it stays on.
+- `VKD3D_CONFIG=dxr` against `dxr,descriptor_heap`: the same (13.1 and 13.2 fps).
+- The **release** build of `42b2226` showed only a teal rectangle at the top left on black
+  once in the world, in three runs on this machine (with and without lsfg-vk, Mesa 26.2.6
+  and main), while its frame lines went on (14.3 fps at 1080p). Two more release runs
+  stopped with an access violation (one at 2560x1440, one with FSR off). The diag build of
+  the same commit, with the same settings, drew the world in all eight of its runs (five
+  checked by screenshot). Cause not found yet.
