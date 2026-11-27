@@ -75,9 +75,10 @@ The build with the diagnostics the scripts below log (frame lines, A/B phases, c
 cargo xwin build --locked --profile diag -p victory --features diagnostics --bins --target x86_64-pc-windows-msvc
 ```
 
-Tests run under Proton through `scripts/proton-run.sh` as the cargo runner (see
-`docs/linux-wine.md`); one test, `switches::documented_switches_are_read`, fails under
-Wine only.
+On Linux the build is cross-built (`cargo xwin`); on Windows plain `cargo build` (see
+Windows below). Tests on Linux run under Proton through `scripts/proton-run.sh` as the cargo
+runner (see `docs/linux-wine.md`); one test, `switches::documented_switches_are_read`, fails
+under Wine only.
 
 ## Run
 
@@ -105,6 +106,59 @@ second, `linux/hw-log.py`). `linux/ab-report.py` sums up an in-run A/B
 Keyboard stand-in for the pad: W/A/S/D left stick, I/J/K/L right stick, Z and C the
 triggers, Enter A, Backspace B, X and Y, Q and E the shoulders, Esc menu, Tab view; F3
 shows or hides the info panel, F4 saves the next frame (with `VICTORY_CAPTURE`).
+
+## Windows
+
+The program is a Windows program, and VIctory, which this is built on, runs natively on
+Windows. **This fork was tuned and tested only on Linux under Proton**: nothing of it has
+been tested on Windows, so treat the steps below as a starting point. The Linux-only pieces
+(the wineserver patch, the Proton paths, `linux/*.sh`, the launcher) are not needed there.
+
+You need Windows 10 or 11 (x64), a CPU with AVX2, a Direct3D 12 GPU with shader model 6.6
+and mesh shaders, a current AMD Adrenalin driver, Rust through rustup (the toolchain file
+picks 1.98.1), and the Visual Studio Build Tools with the "Desktop development with C++"
+workload. Windows has its own `d3dcompiler_47.dll`; `dxil.dll` comes with the Windows SDK.
+
+In PowerShell, in a normal window (not as administrator):
+
+```powershell
+git clone https://github.com/Slaktarn700/SlaktarnVI
+cd SlaktarnVI
+Copy-Item victory.example.toml victory.toml        # then set your paths in it, outside this folder
+cargo build --locked --profile diag -p victory --features diagnostics --bins
+```
+
+Run with the settings this fork uses (characters stretch without them):
+
+```powershell
+.\scripts\play.ps1 -Exe "D:\Games\<your copy>\<the executable>"
+```
+
+The S70 preset of the Linux launcher (2560x1440, FSR at 0.6667 scale, frame generation,
+the info panel) needs the two FidelityFX DLLs in a folder of their own:
+
+```powershell
+.\scripts\play.ps1 -Exe "D:\Games\<your copy>\<the executable>" -S70 -FidelityFX "D:\FidelityFX"
+```
+
+`-Safe` leaves out the newest, faster ways (try it first when something is wrong),
+`-Build release` uses `target\release`, and `-More @{VICTORY_PANEL='1'}` passes any other
+switch. If PowerShell refuses to run the script, allow it for this window only:
+
+```powershell
+Set-ExecutionPolicy -Scope Process -ExecutionPolicy Bypass
+```
+
+Ahead of the first run (both can be stopped and go on later):
+
+```powershell
+.\target\diag\valhalla.exe shaders "<the title's shader archives>"   # every shader translated, minutes
+.\target\diag\valhalla.exe warm --used                                # pipelines earlier runs drew with
+```
+
+On Linux, Proton swaps the FidelityFX upscaler for FSR 4 (`PROTON_FSR4_UPGRADE`); on
+Windows the upscaler is the one in the DLL you supply, and whether the driver upgrades it
+is not tested.
 
 ## Credits and license
 

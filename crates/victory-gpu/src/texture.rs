@@ -1614,7 +1614,7 @@ pub(crate) static LOOK_GUARD_COUNTS: [std::sync::atomic::AtomicU64; 5] = [const 
 
 /// Whether a look at an uploaded texture picked by index asks the write
 /// watch and the guards what was written since its upload
-/// (`VICTORY_LOOK_GUARDS=0`: the sampled fingerprint alone, as before).
+/// (`VICTORY_LOOK_GUARDS=1`; off: the sampled fingerprint alone, as before).
 ///
 /// The fingerprint is of 16 KiB at the start, the middle and the end of a
 /// texture's memory. One uploaded while the title was still filling it (it
@@ -1624,8 +1624,25 @@ pub(crate) static LOOK_GUARD_COUNTS: [std::sync::atomic::AtomicU64; 5] = [const 
 /// user, runs p2 and jp1). The guards know every block written since they
 /// were last asked, and the upload asks them right before it reads
 /// ([`uploading`]).
+///
+/// Off by default (`VICTORY_LOOK_GUARDS=1`): with it a character's face was
+/// coloured noise for a minute of the office cutscene (run vt1), clean
+/// without it (runs lg1, vt0); of 171,000 looks it flagged, 170,500 found
+/// every byte the same. What it was for, the shirts in random colours, came
+/// from vertices thrown off with `VICTORY_CARD_STEPS_LEARN=0`, not from
+/// stale textures. Its guards count writes of ours (copies back) as the
+/// title's.
 fn look_guards() -> bool {
-    crate::toggled!("VICTORY_LOOK_GUARDS")
+    #[cfg(feature = "diagnostics")]
+    if let Some(on) = crate::ab::pick("VICTORY_LOOK_GUARDS") {
+        return on;
+    }
+    // (Its test needs it.)
+    if cfg!(test) {
+        return true;
+    }
+    static ON: std::sync::OnceLock<bool> = std::sync::OnceLock::new();
+    *ON.get_or_init(|| crate::switch::on("VICTORY_LOOK_GUARDS"))
 }
 
 /// The memory at `at` was read for an upload behind asking `asked` (0: it
