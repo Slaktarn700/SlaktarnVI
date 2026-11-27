@@ -1,0 +1,1 @@
+Put d3dcompiler_47.dll and dxil.dll (Windows SDK package on nuget.org) here. Not part of this repository.
