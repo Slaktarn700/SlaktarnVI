@@ -9,6 +9,8 @@
 # Linux paths in arguments are fine: Wine maps / to Z:\.
 set -euo pipefail
 HERE="$(cd "$(dirname "$0")" && pwd)"
+. "$HERE/data-dir.sh"
+DATA_DIR=$(valhalla_data_dir "$HERE")
 # Proton Experimental: its vkd3d-proton (dxil-spirv) builds every pipeline of
 # the title; GE-Proton11-11's emits invalid SPIR-V for some, which crashes RADV.
 PROTON="${PROTON:-$HOME/.steam/steam/steamapps/common/Proton - Experimental}"
@@ -28,11 +30,11 @@ export WINEDLLOVERRIDES="d3d12,d3d12core,dxgi,d3d11,d3d10core=n,b;${WINEDLLOVERR
 export WINEDEBUG="${WINEDEBUG:--all}"
 export WINEFSYNC=1
 # Keep vkd3d-proton's pipeline cache out of the working directory.
-export VKD3D_SHADER_CACHE_PATH="${VKD3D_SHADER_CACHE_PATH:-$HERE/victory-data/vkd3d-cache}"
+export VKD3D_SHADER_CACHE_PATH="${VKD3D_SHADER_CACHE_PATH:-$DATA_DIR/vkd3d-cache}"
 mkdir -p "$VKD3D_SHADER_CACHE_PATH"
 # Where victory keeps saves / shader cache unless victory.toml says otherwise.
-export VICTORY_DATA_DIR="${VICTORY_DATA_DIR:-$HERE/victory-data/data}"
-export VICTORY_CACHE_DIR="${VICTORY_CACHE_DIR:-$HERE/victory-data/cache}"
+export VICTORY_DATA_DIR="${VICTORY_DATA_DIR:-$DATA_DIR/data}"
+export VICTORY_CACHE_DIR="${VICTORY_CACHE_DIR:-$DATA_DIR/cache}"
 mkdir -p "$VICTORY_DATA_DIR" "$VICTORY_CACHE_DIR"
 
 # Microsoft's own shader compiler (keep/ms-d3d, from the Windows SDK package on
