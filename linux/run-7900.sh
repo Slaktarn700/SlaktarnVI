@@ -11,6 +11,7 @@
 #   WALK=150-300                walk (5 s forward, 5 s back, repeated) from 150 s to 300 s
 #   HOLD="500-560:C 520-524:A"  keys held over those seconds (C: right trigger, Z: left)
 #   VICTORY_PANEL=0             without the on-screen panel (fps and frame parts)
+#   MESA_PREFIX=~/mesa-main/prefix   RADV from that prefix (build-mesa-main.sh), not the system's
 # Proton: VICTORY_PIPELINE_WAIT_MS=30 (the fork waits up to 500 ms a frame for
 # pipelines; under Proton a few are never made, and every frame waited all 500).
 # VICTORY_PIPELINE_BOOK=1 writes down the pipelines the title creates, for
@@ -59,6 +60,11 @@ fi
 # views by address (keep/wineserver-view-tree.patch); PATCHED=0: Steam's own.
 if [ "${PATCHED:-1}" = 1 ] && [ -x "$PWD/proton-patched/files/bin/wineserver" ]; then
     export PROTON="${PROTON:-$PWD/proton-patched}"
+fi
+# MESA_PREFIX=<prefix>: RADV from there (linux/build-mesa-main.sh) for this run only.
+if [ -n "${MESA_PREFIX:-}" ]; then
+    export VK_DRIVER_FILES="$MESA_PREFIX/share/vulkan/icd.d/radeon_icd.x86_64.json"
+    [ -f "$VK_DRIVER_FILES" ] || { echo "MESA_PREFIX: no $VK_DRIVER_FILES" >&2; exit 1; }
 fi
 # GAME_DIR: the game's folder (its own files; default game/ beside this script).
 gamedir="${GAME_DIR:-$PWD/game}"
