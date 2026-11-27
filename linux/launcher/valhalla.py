@@ -26,7 +26,24 @@ from pathlib import Path
 
 HERE = Path(__file__).resolve().parent
 BASE = HERE.parent  # the folder with run-7900.sh, game/, the Proton copy
-SETTINGS_FILE = BASE / "victory-data" / "launcher.json"
+
+
+def data_root(base: Path) -> Path:
+    """Where saves, caches and settings go (same rule as data-dir.sh).
+
+    The runtime refuses game-derived data inside a VIctory source tree, so a
+    linux/ folder that is still in a checkout uses the user's data directory.
+    A linux/ folder copied out of the tree keeps its own victory-data/.
+    """
+    for parent in (base, *base.parents):
+        if (parent / ".victory-root").is_file():
+            xdg = os.environ.get("XDG_DATA_HOME")
+            return Path(xdg) / "victory" if xdg else Path.home() / ".local" / "share" / "victory"
+    return base / "victory-data"
+
+
+DATA_ROOT = data_root(BASE)
+SETTINGS_FILE = DATA_ROOT / "launcher.json"
 LOG_FILE = BASE / "valhalla.log"
 # The program: bin/ in a package, else this tree's build.
 EXE = next((p for p in (BASE / "bin" / "valhalla.exe",
@@ -35,7 +52,7 @@ EXE = next((p for p in (BASE / "bin" / "valhalla.exe",
 GAME_EXE_NAME = os.environ.get("GAME_EXE", "game.exe")
 FIDELITYFX = BASE / "keep" / "fidelityfx"
 CAPTURES = BASE / "captures"
-SHADER_CACHE = BASE / "victory-data" / "cache-7900" / "shaders"
+SHADER_CACHE = DATA_ROOT / "cache-7900" / "shaders"
 
 
 def shaders_prepared() -> bool:
@@ -941,7 +958,7 @@ def run_window() -> int:
             steps = [["bash", str(BASE / "run-victory.sh"), "shaders", str(self.s.game_path())],
                      ["bash", str(BASE / "run-victory.sh"), "warm", "--used"]]
             env = dict(os.environ)
-            env.update({"VICTORY_EXE": str(EXE), "VICTORY_CACHE_DIR": str(BASE / "victory-data" / "cache-7900"),
+            env.update({"VICTORY_EXE": str(EXE), "VICTORY_CACHE_DIR": str(DATA_ROOT / "cache-7900"),
                         "VICTORY_PIPELINE_BOOK": "1", "VICTORY_PORT_CBV": "1"})
             self.prepare_button.setEnabled(False)
             self.prepare_button.setText("Preparing…")

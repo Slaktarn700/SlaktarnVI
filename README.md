@@ -85,7 +85,9 @@ under Wine only.
 Everything runs from `linux/`: copy the built `valhalla.exe` (from
 `target/x86_64-pc-windows-msvc/diag/` or `.../release/`) to `linux/bin/valhalla.exe` (or set
 `EXE=` to it), put the title in `linux/game/` or set `GAME_DIR=`, and set `GAME_EXE=` to the
-file name of its executable. Caches and saves go to `linux/victory-data/`.
+file name of its executable. Caches and saves go to `linux/victory-data/`, or to
+`~/.local/share/victory` (or `$XDG_DATA_HOME/victory`) while `linux/` is still inside the
+checkout: the runtime refuses to write game-derived data inside a source tree.
 
 ```bash
 ./linux/valhalla.sh

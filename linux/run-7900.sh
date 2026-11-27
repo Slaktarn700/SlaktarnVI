@@ -17,6 +17,8 @@
 #   ./run-victory.sh warm --used  (builds them ahead, between runs).
 # Unplug the controller for the first 40 s so the intro is skipped.
 cd "$(dirname "$0")"
+. ./data-dir.sh
+DATA_DIR=$(valhalla_data_dir "$PWD")
 # SKIP_INTRO=0: no Enter presses in the first 40 s (they skip the intro).
 keys=""
 if [ "${SKIP_INTRO:-1}" = 1 ]; then
@@ -79,7 +81,7 @@ VICTORY_KEYS="$keys" \
 VICTORY_PANEL="${VICTORY_PANEL:-1}" \
 VICTORY_PIPELINE_WAIT_MS="${VICTORY_PIPELINE_WAIT_MS:-30}" \
 VICTORY_PIPELINE_BOOK="${VICTORY_PIPELINE_BOOK:-1}" \
-VICTORY_CACHE_DIR="${VICTORY_CACHE_DIR:-$PWD/victory-data/cache-7900}" \
+VICTORY_CACHE_DIR="${VICTORY_CACHE_DIR:-$DATA_DIR/cache-7900}" \
 VICTORY_EXE="${EXE:-$exe}" \
 VICTORY_GAME_DIR="Z:${gamedir//\//\\}" \
     "${run[@]}" 2>&1 | sed -u 's/\x1b\[[0-9;]*m//g' > "${LOG:-7900.log}"
