@@ -4060,7 +4060,7 @@ fn buffer_view_ok(format: DXGI_FORMAT, first: u64, count: u32, stride: u32, raw:
 pub(crate) static TWINS: [std::sync::atomic::AtomicU64; 4] = [const { std::sync::atomic::AtomicU64::new(0) }; 4];
 
 /// Whether raw twins of buffer views that do not begin on 16 bytes begin at
-/// the view's own dword (on by default; `VICTORY_TWIN_EXACT=0`: a null view,
+/// the view's own dword (on by default under Wine; `VICTORY_TWIN_EXACT=0`: a null view,
 /// as before, unless [`move_raw`] can move a staged one). Read once.
 ///
 /// D3D12 asks raw views to begin on 16 bytes; AMD's hardware and RADV read a
@@ -4080,9 +4080,27 @@ pub(crate) static TWINS: [std::sync::atomic::AtomicU64; 4] = [const { std::sync:
 /// (faces, arms and clothes in coloured squares and green patches, the
 /// user's session of 2026-11-27 with avatarmanz#437 as it came). Those stay
 /// null, as before.
+///
+/// Only under Wine (vkd3d-proton takes the view as it is). Windows' own D3D12
+/// removes the device at the first such view, "a RAW Shader Resource View ...
+/// FirstElement (27890541) must be a multiple of 4" in the debug layer, then
+/// DXGI_ERROR_INVALID_CALL: every run on an RX 9070 XT (Adrenalin 32.0.32029)
+/// lost the device 49 to 102 s in, in every preset, and none with the twins
+/// off. There the twin goes the way it went before ([`move_raw`], else null),
+/// and `VICTORY_TWIN_EXACT=1` does not change it.
 fn twin_exact() -> bool {
     static ON: std::sync::OnceLock<bool> = std::sync::OnceLock::new();
-    *ON.get_or_init(|| std::env::var_os("VICTORY_TWIN_EXACT").is_none_or(|v| v != "0"))
+    *ON.get_or_init(|| {
+        let asked = std::env::var_os("VICTORY_TWIN_EXACT").is_none_or(|v| v != "0");
+        let wine = crate::shadow::on_wine();
+        if asked && !wine {
+            tracing::info!(
+                "raw twins not made from their own dword: \
+                 Windows' D3D12 removes the device for a raw view off 16 bytes"
+            );
+        }
+        asked && wine
+    })
 }
 
 /// Moves the raw view at `at`, a slot of our heaps the card does not see,
